@@ -1,1 +1,38 @@
-<h1>АРИОН</h1>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>АРИОН — проверка карты</title>
+    <script src="https://api-maps.yandex.ru/2.1/?apikey=8c6b11a3-2c0d-4476-9823-ecbbd5e9df10&lang=ru_RU" type="text/javascript"></script>
+    <style>
+        html, body, #map {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <script type="text/javascript">
+        ymaps.ready(init);
+
+        function init() {
+            var map = new ymaps.Map("map", {
+                center: [59.935, 30.305],
+                zoom: 15,
+                controls: ['zoomControl', 'fullscreenControl']
+            });
+
+            var placemark = new ymaps.Placemark([59.935, 30.305], {
+                balloonContent: 'Сенатская площадь',
+                hintContent: 'Сенатская площадь'
+            });
+
+            map.geoObjects.add(placemark);
+        }
+    </script>
+</body>
+</html>
