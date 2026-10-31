@@ -11,131 +11,139 @@
     <script src="https://api-maps.yandex.ru/2.1/?apikey=8c6b11a3-2c0d-4476-9823-ecbbd5e9df10&lang=ru_RU" type="text/javascript"></script>
     
     <style>
-        /* Сброс стилей и базовые настройки */
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Georgia', serif; /* Используем шрифт с засечками для исторического вайба */ }
         html, body { width: 100%; height: 100%; overflow: hidden; background: #1a2e1a; }
         
-        /* Карта на весь экран */
+        /* Карта */
         #map { width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; }
 
-        /* Верхняя панель с названием */
-        .top-bar {
+        /* =========================================
+           ЭКРАН ПРИВЕТСТВИЯ (SPLASH SCREEN)
+           ========================================= */
+        .welcome-screen {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 100; /* Поверх всего */
+            /* Фоновое изображение с затемнением для читаемости текста */
+            background-image: linear-gradient(rgba(26, 46, 26, 0.85), rgba(15, 25, 15, 0.95)), url('https://images.unsplash.com/photo-1556614148-83a1e3834f2c?q=80&w=1000&auto=format&fit=crop');
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+            transition: opacity 0.6s ease, visibility 0.6s ease;
+        }
+
+        /* Класс для скрытия экрана */
+        .welcome-screen.hidden {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .welcome-title {
+            color: #ffffff;
+            font-size: 48px;
+            letter-spacing: 8px;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        .welcome-subtitle {
+            color: #d1d5db; /* Светло-серый */
+            font-size: 16px;
+            letter-spacing: 2px;
+            margin-bottom: 40px;
+            max-width: 300px;
+            line-height: 1.5;
+        }
+
+        .start-btn {
+            background-color: #C41E3A; /* Наш красный кармин */
+            color: white;
+            border: 2px solid #C41E3A;
+            padding: 15px 40px;
+            font-size: 18px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: background-color 0.3s, color 0.3s;
+            box-shadow: 0 4px 15px rgba(196, 30, 58, 0.4);
+        }
+
+        .start-btn:hover {
+            background-color: transparent;
+            color: #C41E3A;
+        }
+
+        /* =========================================
+           ИНТЕРФЕЙС КАРТЫ
+           ========================================= */
+        .top-bar {
+            position: absolute; top: 0; left: 0; width: 100%;
             padding: 15px 20px;
             background: linear-gradient(to bottom, rgba(26, 46, 26, 0.9), transparent);
-            color: white;
-            z-index: 10;
-            pointer-events: none; /* Чтобы можно было кликать по карте под панелью */
+            color: white; z-index: 10; pointer-events: none;
         }
         .top-bar h1 { font-size: 20px; font-weight: bold; letter-spacing: 2px; }
 
-        /* Нижняя выезжающая панель (Bottom Sheet) */
         .bottom-sheet {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 50%; /* Занимает половину экрана */
-            background-color: #ffffff;
-            border-radius: 20px 20px 0 0;
-            z-index: 20;
-            transform: translateY(100%); /* Изначально спрятана внизу */
-            transition: transform 0.3s ease-out; /* Плавная анимация выезда */
-            display: flex;
-            flex-direction: column;
-            box-shadow: 0 -5px 20px rgba(0,0,0,0.3);
+            position: absolute; bottom: 0; left: 0; width: 100%; height: 50%;
+            background-color: #ffffff; border-radius: 20px 20px 0 0;
+            z-index: 20; transform: translateY(100%); transition: transform 0.3s ease-out;
+            display: flex; flex-direction: column; box-shadow: 0 -5px 20px rgba(0,0,0,0.3);
+            font-family: sans-serif; /* Внутри панели — шрифт без засечек для удобства чтения */
         }
+        .bottom-sheet.active { transform: translateY(0); }
 
-        /* Класс для открытия панели */
-        .bottom-sheet.active {
-            transform: translateY(0);
-        }
-
-        /* Ручка для закрытия (свайп) */
-        .sheet-handle {
-            width: 40px;
-            height: 4px;
-            background-color: #ccc;
-            border-radius: 2px;
-            margin: 10px auto;
-        }
-
-        /* Кнопка закрытия (крестик) */
+        .sheet-handle { width: 40px; height: 4px; background-color: #ccc; border-radius: 2px; margin: 10px auto; }
+        
         .close-btn {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            background: #f0f0f0;
-            border: none;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            font-size: 16px;
-            cursor: pointer;
-            color: #333;
+            position: absolute; top: 15px; right: 15px; background: #f0f0f0; border: none;
+            border-radius: 50%; width: 30px; height: 30px; font-size: 16px; cursor: pointer; color: #333;
         }
 
-        /* Контент внутри панели */
-        .sheet-content {
-            padding: 0 20px 20px 20px;
-            overflow-y: auto;
-            flex-grow: 1;
-        }
-
-        .point-title {
-            font-size: 22px;
-            font-weight: bold;
-            color: #1a2e1a;
-            margin-bottom: 10px;
-            margin-top: 10px;
-        }
-
-        .point-desc {
-            font-size: 15px;
-            color: #555;
-            line-height: 1.5;
-            margin-bottom: 20px;
-        }
-
-        /* Заглушка для плеера */
-        .player-stub {
-            background: #eaeaea;
-            padding: 15px;
-            border-radius: 10px;
-            text-align: center;
-            color: #888;
-            font-size: 14px;
-        }
+        .sheet-content { padding: 0 20px 20px 20px; overflow-y: auto; flex-grow: 1; }
+        .point-title { font-size: 22px; font-weight: bold; color: #1a2e1a; margin-bottom: 10px; margin-top: 10px; }
+        .point-desc { font-size: 15px; color: #555; line-height: 1.5; margin-bottom: 20px; }
+        .player-stub { background: #eaeaea; padding: 15px; border-radius: 10px; text-align: center; color: #888; font-size: 14px; }
     </style>
 </head>
 <body>
 
-    <!-- Карта -->
+    <!-- ЭКРАН ПРИВЕТСТВИЯ -->
+    <div class="welcome-screen" id="welcomeScreen">
+        <h1 class="welcome-title">АРИОН</h1>
+        <p class="welcome-subtitle">Иммерсивная аудиопрогулка по местам восстания декабристов</p>
+        <button class="start-btn" onclick="startApp()">НАЧАТЬ</button>
+    </div>
+
+    <!-- КАРТА И ИНТЕРФЕЙС -->
     <div id="map"></div>
 
-    <!-- Верхняя панель -->
     <div class="top-bar">
         <h1>АРИОН</h1>
     </div>
 
-    <!-- Нижняя панель -->
     <div class="bottom-sheet" id="pointSheet">
         <button class="close-btn" onclick="closeSheet()">✕</button>
         <div class="sheet-handle"></div>
         <div class="sheet-content">
             <div class="point-title" id="sheetTitle">Название точки</div>
-            <div class="point-desc" id="sheetDesc">Здесь будет краткий текст об истории этого места...</div>
-            
-            <div class="player-stub">
-                ▶ Аудиоплеер (будет здесь)
-            </div>
+            <div class="point-desc" id="sheetDesc">Здесь будет краткий текст...</div>
+            <div class="player-stub">▶ Аудиоплеер (будет здесь)</div>
         </div>
     </div>
 
     <script type="text/javascript">
+        // Логика скрытия экрана приветствия
+        function startApp() {
+            document.getElementById('welcomeScreen').classList.add('hidden');
+        }
+
         // Логика карты
         ymaps.ready(init);
 
@@ -143,10 +151,9 @@
             var map = new ymaps.Map("map", {
                 center: [59.931, 30.315],
                 zoom: 14,
-                controls: [] // Убираем лишние кнопки для чистого интерфейса
+                controls: [] 
             });
 
-            // Массив точек (координаты, номер, название, текст-заглушка)
             var points = [
                 [59.925338, 30.328850, 1, "Ворота казарм", "Здесь началось восстание. Солдаты вышли из этих ворот..."],
                 [59.924932, 30.327460, 2, "Выход на Гороховую", "Колонна повернула на главную магистраль..."],
@@ -158,9 +165,7 @@
 
             var lineCoords = points.map(function(p) { return [p[0], p[1]]; });
             var polyline = new ymaps.Polyline(lineCoords, {}, {
-                strokeColor: "#C41E3A",
-                strokeWidth: 4,
-                strokeOpacity: 0.8
+                strokeColor: "#C41E3A", strokeWidth: 4, strokeOpacity: 0.8
             });
             map.geoObjects.add(polyline);
 
@@ -174,9 +179,8 @@
                     )
                 });
                 
-                // Клик по метке открывает панель
                 placemark.events.add('click', function (e) {
-                    openSheet(p[3], p[4]); // Передаем название и текст
+                    openSheet(p[3], p[4]); 
                 });
 
                 map.geoObjects.add(placemark);
@@ -185,19 +189,16 @@
             map.setBounds(polyline.geometry.getBounds(), { checkZoomRange: true, zoomMargin: 50 });
         }
 
-        // Функция открытия панели
         function openSheet(title, description) {
             document.getElementById('sheetTitle').innerText = title;
             document.getElementById('sheetDesc').innerText = description;
             document.getElementById('pointSheet').classList.add('active');
         }
 
-        // Функция закрытия панели
         function closeSheet() {
             document.getElementById('pointSheet').classList.remove('active');
         }
 
-        // Подключение Service Worker для PWA
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/arion/service-worker.js');
         }
