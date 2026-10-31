@@ -10,25 +10,17 @@
     <script src="https://api-maps.yandex.ru/2.1/?apikey=8c6b11a3-2c0d-4476-9823-ecbbd5e9df10&lang=ru_RU" type="text/javascript"></script>
     
     <style>
-        /* --- Базовые стили --- */
         * { box-sizing: border-box; margin: 0; padding: 0; }
         html, body { width: 100%; height: 100%; overflow: hidden; background: #1a2e1a; font-family: 'Georgia', serif; }
         
-        /* --- Экраны (Карта, Экспертиза, О проекте) --- */
         .screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; z-index: 1; }
         .screen.active { display: block; }
-        
         #map { width: 100%; height: 100%; }
 
-        /* Заглушки для текстовых экранов */
-        .text-screen {
-            background-color: #1a2e1a; color: white; padding: 80px 20px 20px 20px;
-            overflow-y: auto; text-align: center;
-        }
+        .text-screen { background-color: #1a2e1a; color: white; padding: 80px 20px 20px 20px; overflow-y: auto; text-align: center; }
         .text-screen h2 { color: #C41E3A; margin-bottom: 20px; font-size: 28px; }
         .text-screen p { line-height: 1.6; color: #d1d5db; margin-bottom: 15px; font-size: 16px; }
 
-        /* --- Экран приветствия --- */
         .welcome-screen {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 100;
             background-image: linear-gradient(rgba(26, 46, 26, 0.85), rgba(15, 25, 15, 0.95)), url('https://images.unsplash.com/photo-1556614148-83a1e3834f2c?q=80&w=1000&auto=format&fit=crop');
@@ -46,7 +38,6 @@
         }
         .start-btn:hover { background-color: transparent; color: #C41E3A; }
 
-        /* --- Верхняя панель с вкладками --- */
         .top-bar {
             position: absolute; top: 0; left: 0; width: 100%;
             background: rgba(26, 46, 26, 0.95); z-index: 10;
@@ -59,7 +50,6 @@
         }
         .top-bar button.active { color: #C41E3A; font-weight: bold; }
 
-        /* --- Нижняя панель (Bottom Sheet) --- */
         .bottom-sheet {
             position: absolute; bottom: 0; left: 0; width: 100%; height: 50%;
             background-color: #ffffff; border-radius: 20px 20px 0 0;
@@ -77,7 +67,20 @@
         .point-title { font-size: 22px; font-weight: bold; color: #1a2e1a; margin-bottom: 10px; margin-top: 10px; }
         .point-desc { font-size: 15px; color: #555; line-height: 1.5; margin-bottom: 20px; }
         
-        /* Кнопка "Пропустить" */
+        /* Стили для плеера */
+        .custom-audio-player {
+            background: #1a2e1a; padding: 15px; border-radius: 12px; margin-bottom: 20px;
+            display: flex; align-items: center; gap: 15px;
+        }
+        .play-pause-btn {
+            background: #C41E3A; color: white; border: none; width: 40px; height: 40px;
+            border-radius: 50%; font-size: 18px; cursor: pointer; display: flex;
+            justify-content: center; align-items: center; flex-shrink: 0;
+        }
+        .audio-info { flex-grow: 1; color: white; font-size: 14px; }
+        .audio-title { font-weight: bold; margin-bottom: 2px; }
+        .audio-time { color: #d1d5db; font-size: 12px; }
+
         .skip-btn {
             background-color: #C41E3A; color: white; border: none; padding: 12px;
             width: 100%; border-radius: 10px; font-size: 16px; font-weight: bold;
@@ -88,177 +91,177 @@
 </head>
 <body>
 
-    <!-- ЭКРАН ПРИВЕТСТВИЯ -->
     <div class="welcome-screen" id="welcomeScreen">
         <h1 class="welcome-title">АРИОН</h1>
         <p class="welcome-subtitle">Иммерсивная аудиопрогулка по местам восстания декабристов</p>
         <button class="start-btn" onclick="startApp()">НАЧАТЬ</button>
     </div>
 
-    <!-- ВЕРХНЕЕ МЕНЮ -->
     <div class="top-bar">
         <button id="tab-map" class="active" onclick="switchTab('map')">Карта</button>
         <button id="tab-exp" onclick="switchTab('exp')">Экспертиза</button>
         <button id="tab-about" onclick="switchTab('about')">О проекте</button>
     </div>
 
-    <!-- ЭКРАНЫ -->
     <div id="screen-map" class="screen active">
         <div id="map"></div>
     </div>
 
     <div id="screen-exp" class="screen text-screen">
         <h2>Взгляд историка</h2>
-        <p>Здесь будет размещено интервью с экспертом-декабристоведом, его взгляд на события и дополнительные материалы.</p>
+        <p>Здесь будет размещено интервью с экспертом-декабристоведом.</p>
     </div>
 
     <div id="screen-about" class="screen text-screen">
         <h2>О проекте</h2>
-        <p>«АРИОН» — это независимый журналистский проект. Мы используем архивные документы и воспоминания очевидцев, чтобы рассказать историю восстания 1825 года.</p>
-        <p>Автор: [Ваше Имя]</p>
+        <p>«АРИОН» — это независимый журналистский проект.</p>
     </div>
 
-    <!-- НИЖНЯЯ ПАНЕЛЬ -->
     <div class="bottom-sheet" id="pointSheet">
         <button class="close-btn" onclick="closeSheet()">✕</button>
         <div class="sheet-handle"></div>
         <div class="sheet-content">
-            <div class="point-title" id="sheetTitle">Название точки</div>
+            <div class="point-title" id="sheetTitle">Название</div>
             <div class="point-desc" id="sheetDesc">Описание...</div>
             
-            <!-- Заглушка плеера -->
-            <div style="background: #eaeaea; padding: 15px; border-radius: 10px; text-align: center; color: #888; font-size: 14px; margin-bottom: 15px;">
-                ▶ Аудиоплеер (будет здесь)
+            <!-- НОВЫЙ АУДИОПЛЕЕР -->
+            <div class="custom-audio-player">
+                <button class="play-pause-btn" id="playBtn" onclick="togglePlay()">▶</button>
+                <div class="audio-info">
+                    <div class="audio-title" id="audioTitle">Аудиодорожка</div>
+                    <div class="audio-time" id="audioTime">00:00 / 00:00</div>
+                </div>
             </div>
+            <!-- Скрытый тег audio -->
+            <audio id="audioPlayer" ontimeupdate="updateTime()"></audio>
             
             <button class="skip-btn" id="skipBtn" onclick="skipPoint()">Пропустить и открыть следующую</button>
         </div>
     </div>
 
     <script type="text/javascript">
-        // --- ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ---
-        let currentPointIndex = 0; // Индекс текущей открытой точки (от 0 до 5)
+        let currentPointIndex = 0;
         let mapInstance = null;
+        let audioElement = document.getElementById('audioPlayer');
         
-        // Загружаем прогресс из памяти телефона (если игрок уже заходил)
         if(localStorage.getItem('arion_progress')) {
             currentPointIndex = parseInt(localStorage.getItem('arion_progress'));
         }
 
-        // Массив данных точек
+        // ВНИМАНИЕ: Сюда мы добавили поле "audioUrl". 
+        // Сейчас там стоит ссылка на тестовую музыку для проверки плеера.
         var pointsData = [
-            { coords: [59.925338, 30.328850], title: "Ворота казарм", desc: "Здесь началось восстание. Солдаты вышли из этих ворот..." },
-            { coords: [59.924932, 30.327460], title: "Выход на Гороховую", desc: "Колонна повернула на главную магистраль..." },
-            { coords: [59.933645, 30.313919], title: "Гороховая, 13", desc: "Середина пути. Прямая перспектива улицы..." },
-            { coords: [59.937167, 30.309029], title: "Адмиралтейская пл.", desc: "Историческая развилка. Поворот к Сенату..." },
-            { coords: [59.936800, 30.305500], title: "Подход к Сенатской", desc: "Отсюда впервые показалось каре..." },
-            { coords: [59.936482, 30.302442], title: "Сенатская площадь", desc: "Кульминация. Построение в каре у Медного всадника..." }
+            { coords: [59.925338, 30.328850], title: "Ворота казарм", desc: "Здесь началось восстание...", audioUrl: "https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8a73467.mp3?filename=cinematic-documentary-115669.mp3" },
+            { coords: [59.924932, 30.327460], title: "Выход на Гороховую", desc: "Колонна повернула...", audioUrl: "https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8a73467.mp3?filename=cinematic-documentary-115669.mp3" },
+            { coords: [59.933645, 30.313919], title: "Гороховая, 13", desc: "Середина пути...", audioUrl: "" },
+            { coords: [59.937167, 30.309029], title: "Адмиралтейская пл.", desc: "Историческая развилка...", audioUrl: "" },
+            { coords: [59.936800, 30.305500], title: "Подход к Сенатской", desc: "Отсюда впервые...", audioUrl: "" },
+            { coords: [59.936482, 30.302442], title: "Сенатская площадь", desc: "Кульминация...", audioUrl: "" }
         ];
 
-        // --- 1. ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК ---
         function switchTab(tabName) {
-            // Скрываем все экраны
             document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
-            // Снимаем выделение со всех кнопок
             document.querySelectorAll('.top-bar button').forEach(el => el.classList.remove('active'));
-            
-            // Показываем нужный
             document.getElementById('screen-' + tabName).classList.add('active');
             document.getElementById('tab-' + tabName).classList.add('active');
-            
-            // Закрываем нижнюю панель при переходе
             closeSheet();
         }
 
-        // --- 2. ЭКРАН ПРИВЕТСТВИЯ ---
         function startApp() {
             document.getElementById('welcomeScreen').classList.add('hidden');
         }
 
-        // --- 3. ИНИЦИАЛИЗАЦИЯ КАРТЫ ---
         ymaps.ready(init);
 
         function init() {
-            mapInstance = new ymaps.Map("map", {
-                center: [59.931, 30.315], zoom: 14, controls: [] 
-            });
+            mapInstance = new ymaps.Map("map", { center: [59.931, 30.315], zoom: 14, controls: [] });
 
-            // Рисуем линию
             var lineCoords = pointsData.map(function(p) { return p.coords; });
-            var polyline = new ymaps.Polyline(lineCoords, {}, {
-                strokeColor: "#C41E3A", strokeWidth: 4, strokeOpacity: 0.8
-            });
+            var polyline = new ymaps.Polyline(lineCoords, {}, { strokeColor: "#C41E3A", strokeWidth: 4, strokeOpacity: 0.8 });
             mapInstance.geoObjects.add(polyline);
 
-            // Рисуем метки
             pointsData.forEach(function(p, index) {
                 var isLocked = index > currentPointIndex;
-                
-                var placemark = new ymaps.Placemark(p.coords, {
-                    hintContent: (index + 1) + ". " + p.title
-                }, {
-                    preset: isLocked ? "islands#grayCircleIcon" : "islands#redCircleIcon", // Заблокированные - серые
+                var placemark = new ymaps.Placemark(p.coords, { hintContent: (index + 1) + ". " + p.title }, {
+                    preset: isLocked ? "islands#grayCircleIcon" : "islands#redCircleIcon",
                     iconContentLayout: ymaps.templateLayoutFactory.createClass(
                         '<div style="color: white; font-weight: bold; font-size: 16px;">' + (index + 1) + '</div>'
                     )
                 });
                 
                 placemark.events.add('click', function () {
-                    if (isLocked) {
-                        alert("Сначала пройдите предыдущие точки маршрута.");
-                    } else {
-                        openSheet(index); 
-                    }
+                    if (isLocked) { alert("Сначала пройдите предыдущие точки маршрута."); } 
+                    else { openSheet(index); }
                 });
-
                 mapInstance.geoObjects.add(placemark);
             });
             
             mapInstance.setBounds(polyline.geometry.getBounds(), { checkZoomRange: true, zoomMargin: 50 });
         }
 
-        // --- 4. РАБОТА С НИЖНЕЙ ПАНЕЛЬЮ ---
         function openSheet(index) {
             document.getElementById('sheetTitle').innerText = (index + 1) + ". " + pointsData[index].title;
             document.getElementById('sheetDesc').innerText = pointsData[index].desc;
             
-            // Прячем кнопку "Пропустить", если это последняя точка
+            // --- ЛОГИКА ПЛЕЕРА ---
+            audioElement.pause(); // Останавливаем предыдущий звук
+            audioElement.src = pointsData[index].audioUrl; // Загружаем новый
+            audioElement.load();
+            document.getElementById('playBtn').innerText = "▶";
+            document.getElementById('audioTitle').innerText = "Точка " + (index + 1);
+            document.getElementById('audioTime').innerText = "00:00 / 00:00";
+
             let skipBtn = document.getElementById('skipBtn');
-            if (index === pointsData.length - 1) {
-                skipBtn.innerText = "Завершить маршрут";
-            } else {
-                skipBtn.innerText = "Пропустить и открыть следующую";
-            }
+            skipBtn.innerText = (index === pointsData.length - 1) ? "Завершить маршрут" : "Пропустить и открыть следующую";
             
             document.getElementById('pointSheet').classList.add('active');
-            document.getElementById('pointSheet').dataset.currentIndex = index; // Запоминаем, какую точку открыли
+            document.getElementById('pointSheet').dataset.currentIndex = index;
         }
 
         function closeSheet() {
             document.getElementById('pointSheet').classList.remove('active');
+            // Мы НЕ ставим аудио на паузу при закрытии, чтобы человек мог слушать и смотреть на карту
         }
 
-        // --- 5. ПРОХОЖДЕНИЕ ТОЧКИ (ПРОПУСТИТЬ / СЛЕДУЮЩАЯ) ---
+        // --- УПРАВЛЕНИЕ АУДИО ---
+        function togglePlay() {
+            if (!audioElement.src) return; // Если нет ссылки на аудио
+            
+            if (audioElement.paused) {
+                audioElement.play();
+                document.getElementById('playBtn').innerText = "⏸";
+            } else {
+                audioElement.pause();
+                document.getElementById('playBtn').innerText = "▶";
+            }
+        }
+
+        function updateTime() {
+            let curMins = Math.floor(audioElement.currentTime / 60);
+            let curSecs = Math.floor(audioElement.currentTime % 60);
+            let durMins = Math.floor(audioElement.duration / 60) || 0;
+            let durSecs = Math.floor(audioElement.duration % 60) || 0;
+            
+            if (isNaN(durMins)) durMins = 0;
+            if (isNaN(durSecs)) durSecs = 0;
+
+            let format = (m, s) => `${m < 10 ? '0'+m : m}:${s < 10 ? '0'+s : s}`;
+            document.getElementById('audioTime').innerText = `${format(curMins, curSecs)} / ${format(durMins, durSecs)}`;
+        }
+
         function skipPoint() {
             let index = parseInt(document.getElementById('pointSheet').dataset.currentIndex);
-            
-            // Если это не последняя точка
             if (index < pointsData.length - 1) {
                 currentPointIndex = index + 1;
-                localStorage.setItem('arion_progress', currentPointIndex); // Сохраняем в память
-                closeSheet();
-                
-                // Перезагружаем страницу (самый простой способ обновить карту и открыть новые точки)
-                // В будущем заменим на более плавное обновление
+                localStorage.setItem('arion_progress', currentPointIndex);
                 location.reload(); 
             } else {
                 alert("Поздравляем! Вы прошли весь маршрут.");
-                localStorage.setItem('arion_progress', 0); // Сбрасываем прогресс
+                localStorage.setItem('arion_progress', 0);
                 location.reload();
             }
         }
 
-        // Регистрация PWA
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/arion/service-worker.js');
         }
