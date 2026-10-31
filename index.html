@@ -2,71 +2,205 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>АРИОН — маршрут</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>АРИОН</title>
+    
+    <!-- Подключение PWA манифеста -->
     <link rel="manifest" href="/arion/manifest.json">
+    
     <script src="https://api-maps.yandex.ru/2.1/?apikey=8c6b11a3-2c0d-4476-9823-ecbbd5e9df10&lang=ru_RU" type="text/javascript"></script>
+    
     <style>
-        html, body, #map { width: 100%; height: 100%; margin: 0; padding: 0; }
+        /* Сброс стилей и базовые настройки */
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
+        html, body { width: 100%; height: 100%; overflow: hidden; background: #1a2e1a; }
+        
+        /* Карта на весь экран */
+        #map { width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; }
+
+        /* Верхняя панель с названием */
+        .top-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 15px 20px;
+            background: linear-gradient(to bottom, rgba(26, 46, 26, 0.9), transparent);
+            color: white;
+            z-index: 10;
+            pointer-events: none; /* Чтобы можно было кликать по карте под панелью */
+        }
+        .top-bar h1 { font-size: 20px; font-weight: bold; letter-spacing: 2px; }
+
+        /* Нижняя выезжающая панель (Bottom Sheet) */
+        .bottom-sheet {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 50%; /* Занимает половину экрана */
+            background-color: #ffffff;
+            border-radius: 20px 20px 0 0;
+            z-index: 20;
+            transform: translateY(100%); /* Изначально спрятана внизу */
+            transition: transform 0.3s ease-out; /* Плавная анимация выезда */
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.3);
+        }
+
+        /* Класс для открытия панели */
+        .bottom-sheet.active {
+            transform: translateY(0);
+        }
+
+        /* Ручка для закрытия (свайп) */
+        .sheet-handle {
+            width: 40px;
+            height: 4px;
+            background-color: #ccc;
+            border-radius: 2px;
+            margin: 10px auto;
+        }
+
+        /* Кнопка закрытия (крестик) */
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: #f0f0f0;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            font-size: 16px;
+            cursor: pointer;
+            color: #333;
+        }
+
+        /* Контент внутри панели */
+        .sheet-content {
+            padding: 0 20px 20px 20px;
+            overflow-y: auto;
+            flex-grow: 1;
+        }
+
+        .point-title {
+            font-size: 22px;
+            font-weight: bold;
+            color: #1a2e1a;
+            margin-bottom: 10px;
+            margin-top: 10px;
+        }
+
+        .point-desc {
+            font-size: 15px;
+            color: #555;
+            line-height: 1.5;
+            margin-bottom: 20px;
+        }
+
+        /* Заглушка для плеера */
+        .player-stub {
+            background: #eaeaea;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            color: #888;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
+
+    <!-- Карта -->
     <div id="map"></div>
+
+    <!-- Верхняя панель -->
+    <div class="top-bar">
+        <h1>АРИОН</h1>
+    </div>
+
+    <!-- Нижняя панель -->
+    <div class="bottom-sheet" id="pointSheet">
+        <button class="close-btn" onclick="closeSheet()">✕</button>
+        <div class="sheet-handle"></div>
+        <div class="sheet-content">
+            <div class="point-title" id="sheetTitle">Название точки</div>
+            <div class="point-desc" id="sheetDesc">Здесь будет краткий текст об истории этого места...</div>
+            
+            <div class="player-stub">
+                ▶ Аудиоплеер (будет здесь)
+            </div>
+        </div>
+    </div>
+
     <script type="text/javascript">
+        // Логика карты
         ymaps.ready(init);
 
         function init() {
-            // Центр карты (примерно посередине маршрута)
             var map = new ymaps.Map("map", {
                 center: [59.931, 30.315],
                 zoom: 14,
-                controls: ['zoomControl']
+                controls: [] // Убираем лишние кнопки для чистого интерфейса
             });
 
-            // Точки маршрута: [широта, долгота, номер, название]
+            // Массив точек (координаты, номер, название, текст-заглушка)
             var points = [
-                [59.925338, 30.328850, 1, "Ворота казарм"],
-                [59.924932, 30.327460, 2, "Выход на Гороховую"],
-                [59.933645, 30.313919, 3, "Гороховая, 13"],
-                [59.937167, 30.309029, 4, "Адмиралтейская пл."],
-                [59.936800, 30.305500, 5, "Подход к Сенатской"],
-                [59.936482, 30.302442, 6, "Сенатская площадь"]
+                [59.925338, 30.328850, 1, "Ворота казарм", "Здесь началось восстание. Солдаты вышли из этих ворот..."],
+                [59.924932, 30.327460, 2, "Выход на Гороховую", "Колонна повернула на главную магистраль..."],
+                [59.933645, 30.313919, 3, "Гороховая, 13", "Середина пути. Прямая перспектива улицы..."],
+                [59.937167, 30.309029, 4, "Адмиралтейская пл.", "Историческая развилка. Поворот к Сенату..."],
+                [59.936800, 30.305500, 5, "Подход к Сенатской", "Отсюда впервые показалось каре..."],
+                [59.936482, 30.302442, 6, "Сенатская площадь", "Кульминация. Построение в каре у Медного всадника..."]
             ];
 
-            // Линия маршрута
             var lineCoords = points.map(function(p) { return [p[0], p[1]]; });
             var polyline = new ymaps.Polyline(lineCoords, {}, {
-                strokeColor: "#C41E3A", // Наш красный кармин
+                strokeColor: "#C41E3A",
                 strokeWidth: 4,
-                strokeOpacity: 0.7
+                strokeOpacity: 0.8
             });
             map.geoObjects.add(polyline);
 
-            // Метки с номерами
             points.forEach(function(p) {
                 var placemark = new ymaps.Placemark([p[0], p[1]], {
-                    balloonContent: p[3],
                     hintContent: p[2] + ". " + p[3]
                 }, {
                     preset: "islands#redCircleIcon",
                     iconContentLayout: ymaps.templateLayoutFactory.createClass(
-                        '<div style="color: white; font-weight: bold;">' + p[2] + '</div>'
+                        '<div style="color: white; font-weight: bold; font-size: 16px;">' + p[2] + '</div>'
                     )
                 });
+                
+                // Клик по метке открывает панель
+                placemark.events.add('click', function (e) {
+                    openSheet(p[3], p[4]); // Передаем название и текст
+                });
+
                 map.geoObjects.add(placemark);
             });
             
-            // Автоматически подгоняем карту под размеры маршрута
-            map.setBounds(polyline.geometry.getBounds(), {
-                checkZoomRange: true,
-                zoomMargin: 40 // Отступы от краев экрана
-            });
+            map.setBounds(polyline.geometry.getBounds(), { checkZoomRange: true, zoomMargin: 50 });
+        }
+
+        // Функция открытия панели
+        function openSheet(title, description) {
+            document.getElementById('sheetTitle').innerText = title;
+            document.getElementById('sheetDesc').innerText = description;
+            document.getElementById('pointSheet').classList.add('active');
+        }
+
+        // Функция закрытия панели
+        function closeSheet() {
+            document.getElementById('pointSheet').classList.remove('active');
+        }
+
+        // Подключение Service Worker для PWA
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/arion/service-worker.js');
         }
     </script>
 </body>
-    <script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/arion/service-worker.js');
-  }
-</script>
 </html>
