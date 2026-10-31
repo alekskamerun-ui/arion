@@ -2,29 +2,43 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <!-- Mobile-first viewport для корректного масштабирования на телефонах -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#1a2e1a">
     <title>АРИОН</title>
     
     <!-- Подключение PWA манифеста -->
     <link rel="manifest" href="/arion/manifest.json">
     
+    <!-- Подключение Яндекс.Карт API -->
     <script src="https://api-maps.yandex.ru/2.1/?apikey=8c6b11a3-2c0d-4476-9823-ecbbd5e9df10&lang=ru_RU" type="text/javascript"></script>
     
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Georgia', serif; /* Используем шрифт с засечками для исторического вайба */ }
-        html, body { width: 100%; height: 100%; overflow: hidden; background: #1a2e1a; }
+        /* --- Базовые стили и сброс --- */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { 
+            width: 100%; 
+            height: 100%; 
+            overflow: hidden; 
+            background: #1a2e1a; 
+            font-family: 'Georgia', serif; /* Шрифт с засечками для исторического вайба */
+        }
         
-        /* Карта */
-        #map { width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; }
+        /* --- Карта --- */
+        #map { 
+            width: 100%; 
+            height: 100%; 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            z-index: 1; 
+        }
 
-        /* =========================================
-           ЭКРАН ПРИВЕТСТВИЯ (SPLASH SCREEN)
-           ========================================= */
+        /* --- Экран приветствия (Splash Screen) --- */
         .welcome-screen {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
-            z-index: 100; /* Поверх всего */
-            /* Фоновое изображение с затемнением для читаемости текста */
+            z-index: 100;
             background-image: linear-gradient(rgba(26, 46, 26, 0.85), rgba(15, 25, 15, 0.95)), url('https://images.unsplash.com/photo-1556614148-83a1e3834f2c?q=80&w=1000&auto=format&fit=crop');
             background-size: cover;
             background-position: center;
@@ -36,52 +50,18 @@
             padding: 20px;
             transition: opacity 0.6s ease, visibility 0.6s ease;
         }
-
-        /* Класс для скрытия экрана */
-        .welcome-screen.hidden {
-            opacity: 0;
-            visibility: hidden;
-        }
-
-        .welcome-title {
-            color: #ffffff;
-            font-size: 48px;
-            letter-spacing: 8px;
-            margin-bottom: 10px;
-            text-transform: uppercase;
-        }
-
-        .welcome-subtitle {
-            color: #d1d5db; /* Светло-серый */
-            font-size: 16px;
-            letter-spacing: 2px;
-            margin-bottom: 40px;
-            max-width: 300px;
-            line-height: 1.5;
-        }
-
+        .welcome-screen.hidden { opacity: 0; visibility: hidden; }
+        .welcome-title { color: #ffffff; font-size: 48px; letter-spacing: 8px; margin-bottom: 10px; text-transform: uppercase; }
+        .welcome-subtitle { color: #d1d5db; font-size: 16px; letter-spacing: 2px; margin-bottom: 40px; max-width: 300px; line-height: 1.5; }
         .start-btn {
-            background-color: #C41E3A; /* Наш красный кармин */
-            color: white;
-            border: 2px solid #C41E3A;
-            padding: 15px 40px;
-            font-size: 18px;
-            font-weight: bold;
-            letter-spacing: 2px;
-            border-radius: 30px;
-            cursor: pointer;
-            transition: background-color 0.3s, color 0.3s;
+            background-color: #C41E3A; color: white; border: 2px solid #C41E3A;
+            padding: 15px 40px; font-size: 18px; font-weight: bold; letter-spacing: 2px;
+            border-radius: 30px; cursor: pointer; transition: background-color 0.3s, color 0.3s;
             box-shadow: 0 4px 15px rgba(196, 30, 58, 0.4);
         }
+        .start-btn:hover { background-color: transparent; color: #C41E3A; }
 
-        .start-btn:hover {
-            background-color: transparent;
-            color: #C41E3A;
-        }
-
-        /* =========================================
-           ИНТЕРФЕЙС КАРТЫ
-           ========================================= */
+        /* --- Верхняя панель --- */
         .top-bar {
             position: absolute; top: 0; left: 0; width: 100%;
             padding: 15px 20px;
@@ -90,22 +70,20 @@
         }
         .top-bar h1 { font-size: 20px; font-weight: bold; letter-spacing: 2px; }
 
+        /* --- Нижняя выезжающая панель (Bottom Sheet) --- */
         .bottom-sheet {
             position: absolute; bottom: 0; left: 0; width: 100%; height: 50%;
             background-color: #ffffff; border-radius: 20px 20px 0 0;
             z-index: 20; transform: translateY(100%); transition: transform 0.3s ease-out;
             display: flex; flex-direction: column; box-shadow: 0 -5px 20px rgba(0,0,0,0.3);
-            font-family: sans-serif; /* Внутри панели — шрифт без засечек для удобства чтения */
+            font-family: sans-serif; /* Для читаемости текста */
         }
         .bottom-sheet.active { transform: translateY(0); }
-
         .sheet-handle { width: 40px; height: 4px; background-color: #ccc; border-radius: 2px; margin: 10px auto; }
-        
         .close-btn {
             position: absolute; top: 15px; right: 15px; background: #f0f0f0; border: none;
             border-radius: 50%; width: 30px; height: 30px; font-size: 16px; cursor: pointer; color: #333;
         }
-
         .sheet-content { padding: 0 20px 20px 20px; overflow-y: auto; flex-grow: 1; }
         .point-title { font-size: 22px; font-weight: bold; color: #1a2e1a; margin-bottom: 10px; margin-top: 10px; }
         .point-desc { font-size: 15px; color: #555; line-height: 1.5; margin-bottom: 20px; }
@@ -121,13 +99,15 @@
         <button class="start-btn" onclick="startApp()">НАЧАТЬ</button>
     </div>
 
-    <!-- КАРТА И ИНТЕРФЕЙС -->
+    <!-- КАРТА -->
     <div id="map"></div>
 
+    <!-- ВЕРХНЯЯ ПАНЕЛЬ -->
     <div class="top-bar">
         <h1>АРИОН</h1>
     </div>
 
+    <!-- НИЖНЯЯ ПАНЕЛЬ -->
     <div class="bottom-sheet" id="pointSheet">
         <button class="close-btn" onclick="closeSheet()">✕</button>
         <div class="sheet-handle"></div>
@@ -139,12 +119,12 @@
     </div>
 
     <script type="text/javascript">
-        // Логика скрытия экрана приветствия
+        // 1. Логика скрытия экрана приветствия
         function startApp() {
             document.getElementById('welcomeScreen').classList.add('hidden');
         }
 
-        // Логика карты
+        // 2. Инициализация карты (строго внутри ymaps.ready)
         ymaps.ready(init);
 
         function init() {
@@ -154,6 +134,7 @@
                 controls: [] 
             });
 
+            // Точки маршрута (координаты, номер, название, описание)
             var points = [
                 [59.925338, 30.328850, 1, "Ворота казарм", "Здесь началось восстание. Солдаты вышли из этих ворот..."],
                 [59.924932, 30.327460, 2, "Выход на Гороховую", "Колонна повернула на главную магистраль..."],
@@ -163,12 +144,14 @@
                 [59.936482, 30.302442, 6, "Сенатская площадь", "Кульминация. Построение в каре у Медного всадника..."]
             ];
 
+            // Рисуем линию маршрута
             var lineCoords = points.map(function(p) { return [p[0], p[1]]; });
             var polyline = new ymaps.Polyline(lineCoords, {}, {
                 strokeColor: "#C41E3A", strokeWidth: 4, strokeOpacity: 0.8
             });
             map.geoObjects.add(polyline);
 
+            // Добавляем метки
             points.forEach(function(p) {
                 var placemark = new ymaps.Placemark([p[0], p[1]], {
                     hintContent: p[2] + ". " + p[3]
@@ -179,16 +162,19 @@
                     )
                 });
                 
-                placemark.events.add('click', function (e) {
+                // Обработчик клика по метке
+                placemark.events.add('click', function () {
                     openSheet(p[3], p[4]); 
                 });
 
                 map.geoObjects.add(placemark);
             });
             
+            // Автоматически подгоняем карту под размеры маршрута
             map.setBounds(polyline.geometry.getBounds(), { checkZoomRange: true, zoomMargin: 50 });
         }
 
+        // 3. Функции управления нижней панелью
         function openSheet(title, description) {
             document.getElementById('sheetTitle').innerText = title;
             document.getElementById('sheetDesc').innerText = description;
@@ -199,6 +185,7 @@
             document.getElementById('pointSheet').classList.remove('active');
         }
 
+        // 4. Регистрация Service Worker для PWA
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/arion/service-worker.js');
         }
