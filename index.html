@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>АРИОН — маршрут</title>
+    <link rel="manifest" href="/arion/manifest.json">
     <script src="https://api-maps.yandex.ru/2.1/?apikey=8c6b11a3-2c0d-4476-9823-ecbbd5e9df10&lang=ru_RU" type="text/javascript"></script>
     <style>
         html, body, #map { width: 100%; height: 100%; margin: 0; padding: 0; }
@@ -63,4 +64,9 @@
         }
     </script>
 </body>
+    <script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/arion/service-worker.js');
+  }
+</script>
 </html>
