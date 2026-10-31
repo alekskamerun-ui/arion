@@ -2,53 +2,39 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <!-- Mobile-first viewport для корректного масштабирования на телефонах -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#1a2e1a">
     <title>АРИОН</title>
     
-    <!-- Подключение PWA манифеста -->
     <link rel="manifest" href="/arion/manifest.json">
-    
-    <!-- Подключение Яндекс.Карт API -->
     <script src="https://api-maps.yandex.ru/2.1/?apikey=8c6b11a3-2c0d-4476-9823-ecbbd5e9df10&lang=ru_RU" type="text/javascript"></script>
     
     <style>
-        /* --- Базовые стили и сброс --- */
+        /* --- Базовые стили --- */
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        html, body { 
-            width: 100%; 
-            height: 100%; 
-            overflow: hidden; 
-            background: #1a2e1a; 
-            font-family: 'Georgia', serif; /* Шрифт с засечками для исторического вайба */
-        }
+        html, body { width: 100%; height: 100%; overflow: hidden; background: #1a2e1a; font-family: 'Georgia', serif; }
         
-        /* --- Карта --- */
-        #map { 
-            width: 100%; 
-            height: 100%; 
-            position: absolute; 
-            top: 0; 
-            left: 0; 
-            z-index: 1; 
-        }
+        /* --- Экраны (Карта, Экспертиза, О проекте) --- */
+        .screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; z-index: 1; }
+        .screen.active { display: block; }
+        
+        #map { width: 100%; height: 100%; }
 
-        /* --- Экран приветствия (Splash Screen) --- */
+        /* Заглушки для текстовых экранов */
+        .text-screen {
+            background-color: #1a2e1a; color: white; padding: 80px 20px 20px 20px;
+            overflow-y: auto; text-align: center;
+        }
+        .text-screen h2 { color: #C41E3A; margin-bottom: 20px; font-size: 28px; }
+        .text-screen p { line-height: 1.6; color: #d1d5db; margin-bottom: 15px; font-size: 16px; }
+
+        /* --- Экран приветствия --- */
         .welcome-screen {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            z-index: 100;
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 100;
             background-image: linear-gradient(rgba(26, 46, 26, 0.85), rgba(15, 25, 15, 0.95)), url('https://images.unsplash.com/photo-1556614148-83a1e3834f2c?q=80&w=1000&auto=format&fit=crop');
-            background-size: cover;
-            background-position: center;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            padding: 20px;
-            transition: opacity 0.6s ease, visibility 0.6s ease;
+            background-size: cover; background-position: center;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            text-align: center; padding: 20px; transition: opacity 0.6s ease, visibility 0.6s ease;
         }
         .welcome-screen.hidden { opacity: 0; visibility: hidden; }
         .welcome-title { color: #ffffff; font-size: 48px; letter-spacing: 8px; margin-bottom: 10px; text-transform: uppercase; }
@@ -57,26 +43,29 @@
             background-color: #C41E3A; color: white; border: 2px solid #C41E3A;
             padding: 15px 40px; font-size: 18px; font-weight: bold; letter-spacing: 2px;
             border-radius: 30px; cursor: pointer; transition: background-color 0.3s, color 0.3s;
-            box-shadow: 0 4px 15px rgba(196, 30, 58, 0.4);
         }
         .start-btn:hover { background-color: transparent; color: #C41E3A; }
 
-        /* --- Верхняя панель --- */
+        /* --- Верхняя панель с вкладками --- */
         .top-bar {
             position: absolute; top: 0; left: 0; width: 100%;
-            padding: 15px 20px;
-            background: linear-gradient(to bottom, rgba(26, 46, 26, 0.9), transparent);
-            color: white; z-index: 10; pointer-events: none;
+            background: rgba(26, 46, 26, 0.95); z-index: 10;
+            display: flex; justify-content: space-around; align-items: center;
+            padding: 15px 0; border-bottom: 1px solid rgba(255,255,255,0.1);
         }
-        .top-bar h1 { font-size: 20px; font-weight: bold; letter-spacing: 2px; }
+        .top-bar button {
+            background: none; border: none; color: #d1d5db; font-size: 14px; 
+            text-transform: uppercase; letter-spacing: 1px; cursor: pointer; font-family: sans-serif;
+        }
+        .top-bar button.active { color: #C41E3A; font-weight: bold; }
 
-        /* --- Нижняя выезжающая панель (Bottom Sheet) --- */
+        /* --- Нижняя панель (Bottom Sheet) --- */
         .bottom-sheet {
             position: absolute; bottom: 0; left: 0; width: 100%; height: 50%;
             background-color: #ffffff; border-radius: 20px 20px 0 0;
             z-index: 20; transform: translateY(100%); transition: transform 0.3s ease-out;
             display: flex; flex-direction: column; box-shadow: 0 -5px 20px rgba(0,0,0,0.3);
-            font-family: sans-serif; /* Для читаемости текста */
+            font-family: sans-serif;
         }
         .bottom-sheet.active { transform: translateY(0); }
         .sheet-handle { width: 40px; height: 4px; background-color: #ccc; border-radius: 2px; margin: 10px auto; }
@@ -87,7 +76,14 @@
         .sheet-content { padding: 0 20px 20px 20px; overflow-y: auto; flex-grow: 1; }
         .point-title { font-size: 22px; font-weight: bold; color: #1a2e1a; margin-bottom: 10px; margin-top: 10px; }
         .point-desc { font-size: 15px; color: #555; line-height: 1.5; margin-bottom: 20px; }
-        .player-stub { background: #eaeaea; padding: 15px; border-radius: 10px; text-align: center; color: #888; font-size: 14px; }
+        
+        /* Кнопка "Пропустить" */
+        .skip-btn {
+            background-color: #C41E3A; color: white; border: none; padding: 12px;
+            width: 100%; border-radius: 10px; font-size: 16px; font-weight: bold;
+            cursor: pointer; margin-top: 10px;
+        }
+        .skip-btn:disabled { background-color: #ccc; cursor: not-allowed; }
     </style>
 </head>
 <body>
@@ -99,12 +95,27 @@
         <button class="start-btn" onclick="startApp()">НАЧАТЬ</button>
     </div>
 
-    <!-- КАРТА -->
-    <div id="map"></div>
-
-    <!-- ВЕРХНЯЯ ПАНЕЛЬ -->
+    <!-- ВЕРХНЕЕ МЕНЮ -->
     <div class="top-bar">
-        <h1>АРИОН</h1>
+        <button id="tab-map" class="active" onclick="switchTab('map')">Карта</button>
+        <button id="tab-exp" onclick="switchTab('exp')">Экспертиза</button>
+        <button id="tab-about" onclick="switchTab('about')">О проекте</button>
+    </div>
+
+    <!-- ЭКРАНЫ -->
+    <div id="screen-map" class="screen active">
+        <div id="map"></div>
+    </div>
+
+    <div id="screen-exp" class="screen text-screen">
+        <h2>Взгляд историка</h2>
+        <p>Здесь будет размещено интервью с экспертом-декабристоведом, его взгляд на события и дополнительные материалы.</p>
+    </div>
+
+    <div id="screen-about" class="screen text-screen">
+        <h2>О проекте</h2>
+        <p>«АРИОН» — это независимый журналистский проект. Мы используем архивные документы и воспоминания очевидцев, чтобы рассказать историю восстания 1825 года.</p>
+        <p>Автор: [Ваше Имя]</p>
     </div>
 
     <!-- НИЖНЯЯ ПАНЕЛЬ -->
@@ -113,79 +124,141 @@
         <div class="sheet-handle"></div>
         <div class="sheet-content">
             <div class="point-title" id="sheetTitle">Название точки</div>
-            <div class="point-desc" id="sheetDesc">Здесь будет краткий текст...</div>
-            <div class="player-stub">▶ Аудиоплеер (будет здесь)</div>
+            <div class="point-desc" id="sheetDesc">Описание...</div>
+            
+            <!-- Заглушка плеера -->
+            <div style="background: #eaeaea; padding: 15px; border-radius: 10px; text-align: center; color: #888; font-size: 14px; margin-bottom: 15px;">
+                ▶ Аудиоплеер (будет здесь)
+            </div>
+            
+            <button class="skip-btn" id="skipBtn" onclick="skipPoint()">Пропустить и открыть следующую</button>
         </div>
     </div>
 
     <script type="text/javascript">
-        // 1. Логика скрытия экрана приветствия
+        // --- ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ---
+        let currentPointIndex = 0; // Индекс текущей открытой точки (от 0 до 5)
+        let mapInstance = null;
+        
+        // Загружаем прогресс из памяти телефона (если игрок уже заходил)
+        if(localStorage.getItem('arion_progress')) {
+            currentPointIndex = parseInt(localStorage.getItem('arion_progress'));
+        }
+
+        // Массив данных точек
+        var pointsData = [
+            { coords: [59.925338, 30.328850], title: "Ворота казарм", desc: "Здесь началось восстание. Солдаты вышли из этих ворот..." },
+            { coords: [59.924932, 30.327460], title: "Выход на Гороховую", desc: "Колонна повернула на главную магистраль..." },
+            { coords: [59.933645, 30.313919], title: "Гороховая, 13", desc: "Середина пути. Прямая перспектива улицы..." },
+            { coords: [59.937167, 30.309029], title: "Адмиралтейская пл.", desc: "Историческая развилка. Поворот к Сенату..." },
+            { coords: [59.936800, 30.305500], title: "Подход к Сенатской", desc: "Отсюда впервые показалось каре..." },
+            { coords: [59.936482, 30.302442], title: "Сенатская площадь", desc: "Кульминация. Построение в каре у Медного всадника..." }
+        ];
+
+        // --- 1. ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК ---
+        function switchTab(tabName) {
+            // Скрываем все экраны
+            document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
+            // Снимаем выделение со всех кнопок
+            document.querySelectorAll('.top-bar button').forEach(el => el.classList.remove('active'));
+            
+            // Показываем нужный
+            document.getElementById('screen-' + tabName).classList.add('active');
+            document.getElementById('tab-' + tabName).classList.add('active');
+            
+            // Закрываем нижнюю панель при переходе
+            closeSheet();
+        }
+
+        // --- 2. ЭКРАН ПРИВЕТСТВИЯ ---
         function startApp() {
             document.getElementById('welcomeScreen').classList.add('hidden');
         }
 
-        // 2. Инициализация карты (строго внутри ymaps.ready)
+        // --- 3. ИНИЦИАЛИЗАЦИЯ КАРТЫ ---
         ymaps.ready(init);
 
         function init() {
-            var map = new ymaps.Map("map", {
-                center: [59.931, 30.315],
-                zoom: 14,
-                controls: [] 
+            mapInstance = new ymaps.Map("map", {
+                center: [59.931, 30.315], zoom: 14, controls: [] 
             });
 
-            // Точки маршрута (координаты, номер, название, описание)
-            var points = [
-                [59.925338, 30.328850, 1, "Ворота казарм", "Здесь началось восстание. Солдаты вышли из этих ворот..."],
-                [59.924932, 30.327460, 2, "Выход на Гороховую", "Колонна повернула на главную магистраль..."],
-                [59.933645, 30.313919, 3, "Гороховая, 13", "Середина пути. Прямая перспектива улицы..."],
-                [59.937167, 30.309029, 4, "Адмиралтейская пл.", "Историческая развилка. Поворот к Сенату..."],
-                [59.936800, 30.305500, 5, "Подход к Сенатской", "Отсюда впервые показалось каре..."],
-                [59.936482, 30.302442, 6, "Сенатская площадь", "Кульминация. Построение в каре у Медного всадника..."]
-            ];
-
-            // Рисуем линию маршрута
-            var lineCoords = points.map(function(p) { return [p[0], p[1]]; });
+            // Рисуем линию
+            var lineCoords = pointsData.map(function(p) { return p.coords; });
             var polyline = new ymaps.Polyline(lineCoords, {}, {
                 strokeColor: "#C41E3A", strokeWidth: 4, strokeOpacity: 0.8
             });
-            map.geoObjects.add(polyline);
+            mapInstance.geoObjects.add(polyline);
 
-            // Добавляем метки
-            points.forEach(function(p) {
-                var placemark = new ymaps.Placemark([p[0], p[1]], {
-                    hintContent: p[2] + ". " + p[3]
+            // Рисуем метки
+            pointsData.forEach(function(p, index) {
+                var isLocked = index > currentPointIndex;
+                
+                var placemark = new ymaps.Placemark(p.coords, {
+                    hintContent: (index + 1) + ". " + p.title
                 }, {
-                    preset: "islands#redCircleIcon",
+                    preset: isLocked ? "islands#grayCircleIcon" : "islands#redCircleIcon", // Заблокированные - серые
                     iconContentLayout: ymaps.templateLayoutFactory.createClass(
-                        '<div style="color: white; font-weight: bold; font-size: 16px;">' + p[2] + '</div>'
+                        '<div style="color: white; font-weight: bold; font-size: 16px;">' + (index + 1) + '</div>'
                     )
                 });
                 
-                // Обработчик клика по метке
                 placemark.events.add('click', function () {
-                    openSheet(p[3], p[4]); 
+                    if (isLocked) {
+                        alert("Сначала пройдите предыдущие точки маршрута.");
+                    } else {
+                        openSheet(index); 
+                    }
                 });
 
-                map.geoObjects.add(placemark);
+                mapInstance.geoObjects.add(placemark);
             });
             
-            // Автоматически подгоняем карту под размеры маршрута
-            map.setBounds(polyline.geometry.getBounds(), { checkZoomRange: true, zoomMargin: 50 });
+            mapInstance.setBounds(polyline.geometry.getBounds(), { checkZoomRange: true, zoomMargin: 50 });
         }
 
-        // 3. Функции управления нижней панелью
-        function openSheet(title, description) {
-            document.getElementById('sheetTitle').innerText = title;
-            document.getElementById('sheetDesc').innerText = description;
+        // --- 4. РАБОТА С НИЖНЕЙ ПАНЕЛЬЮ ---
+        function openSheet(index) {
+            document.getElementById('sheetTitle').innerText = (index + 1) + ". " + pointsData[index].title;
+            document.getElementById('sheetDesc').innerText = pointsData[index].desc;
+            
+            // Прячем кнопку "Пропустить", если это последняя точка
+            let skipBtn = document.getElementById('skipBtn');
+            if (index === pointsData.length - 1) {
+                skipBtn.innerText = "Завершить маршрут";
+            } else {
+                skipBtn.innerText = "Пропустить и открыть следующую";
+            }
+            
             document.getElementById('pointSheet').classList.add('active');
+            document.getElementById('pointSheet').dataset.currentIndex = index; // Запоминаем, какую точку открыли
         }
 
         function closeSheet() {
             document.getElementById('pointSheet').classList.remove('active');
         }
 
-        // 4. Регистрация Service Worker для PWA
+        // --- 5. ПРОХОЖДЕНИЕ ТОЧКИ (ПРОПУСТИТЬ / СЛЕДУЮЩАЯ) ---
+        function skipPoint() {
+            let index = parseInt(document.getElementById('pointSheet').dataset.currentIndex);
+            
+            // Если это не последняя точка
+            if (index < pointsData.length - 1) {
+                currentPointIndex = index + 1;
+                localStorage.setItem('arion_progress', currentPointIndex); // Сохраняем в память
+                closeSheet();
+                
+                // Перезагружаем страницу (самый простой способ обновить карту и открыть новые точки)
+                // В будущем заменим на более плавное обновление
+                location.reload(); 
+            } else {
+                alert("Поздравляем! Вы прошли весь маршрут.");
+                localStorage.setItem('arion_progress', 0); // Сбрасываем прогресс
+                location.reload();
+            }
+        }
+
+        // Регистрация PWA
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/arion/service-worker.js');
         }
